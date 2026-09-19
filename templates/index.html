@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FAQ Chatbot — CodeAlpha</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <main class="wrap">
+    <header>
+      <span class="badge">CodeAlpha · AI Internship · Task 2</span>
+      <h1>💬 FAQ Chatbot</h1>
+      <p class="subtitle">{{ topic }} — ask me anything about it.</p>
+    </header>
+
+    <section class="chat-card">
+      <div id="chat-window" class="chat-window" aria-live="polite">
+        <div class="msg bot">
+          Hi! 👋 I'm the CodeAlpha FAQ assistant. Ask me about tasks, certificates,
+          submissions — or tap a suggestion below.
+        </div>
+      </div>
+
+      <div id="suggestions" class="suggestions"></div>
+
+      <form id="chat-form" class="chat-form" autocomplete="off">
+        <input id="chat-input" type="text" placeholder="Type your question…"
+               maxlength="500" aria-label="Your question" />
+        <button id="send-btn" type="submit" aria-label="Send">➤</button>
+      </form>
+    </section>
+
+    <footer>
+      <p>NLTK preprocessing · TF-IDF + cosine similarity matching ·
+         Knowledge base: <code>faqs.json</code></p>
+    </footer>
+  </main>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

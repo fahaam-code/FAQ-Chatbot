@@ -1,0 +1,65 @@
+{
+  "topic": "CodeAlpha Internship Program",
+  "faqs": [
+    {
+      "question": "What is the CodeAlpha internship program?",
+      "answer": "The CodeAlpha internship is a real-world, hands-on program where you work on projects in domains like Artificial Intelligence, Web Development, Java programming, Cyber Security and more. You receive an offer letter, complete assigned tasks, and earn a QR-verified completion certificate."
+    },
+    {
+      "question": "What are the perks of this internship?",
+      "answer": "Perks include an internship offer letter, a QR-verified completion certificate, a unique ID certificate, a letter of recommendation based on performance, job opportunities with placement support, and resume building support."
+    },
+    {
+      "question": "How many tasks do I need to complete to get the certificate?",
+      "answer": "You must complete a minimum of 2 or 3 tasks from the task list of your domain. Submitting only one task is considered incomplete, and certificates are not issued in that case."
+    },
+    {
+      "question": "Where should I upload my project source code?",
+      "answer": "Upload your complete source code to GitHub in a repository named CodeAlpha_ProjectName — for example, CodeAlpha_ImageCaptioning or CodeAlpha_Chatbot."
+    },
+    {
+      "question": "How do I submit my completed task?",
+      "answer": "A submission form is shared in your internship WhatsApp group. You must submit your completed task only through that form, following the instructions in it carefully."
+    },
+    {
+      "question": "Do I need to post on LinkedIn?",
+      "answer": "Yes. Share your internship status on LinkedIn tagging @CodeAlpha, and post a short video explanation of your project on LinkedIn along with your GitHub repository link."
+    },
+    {
+      "question": "How long does the internship last?",
+      "answer": "The internship typically runs for 4 weeks (1 month). Complete your assigned tasks within the timeframe mentioned in your offer letter."
+    },
+    {
+      "question": "Is the internship paid?",
+      "answer": "This is an unpaid, learning-focused virtual internship. Its value is the real project experience, certificates, recommendation letter and placement support you receive."
+    },
+    {
+      "question": "Who can apply for the CodeAlpha internship?",
+      "answer": "Students and fresh graduates from any technical or non-technical background can apply. You just need a laptop, an internet connection, and the willingness to learn and complete the tasks."
+    },
+    {
+      "question": "How will I receive my certificate?",
+      "answer": "After your submission is verified, your QR-verified completion certificate and unique ID certificate are issued and shared with you, usually via the WhatsApp group or email."
+    },
+    {
+      "question": "Can I get a letter of recommendation?",
+      "answer": "Yes — a letter of recommendation is awarded based on your performance during the internship, such as quality of your projects and completing extra tasks."
+    },
+    {
+      "question": "What technologies do I need for the AI internship tasks?",
+      "answer": "For the Artificial Intelligence domain you will typically use Python with libraries such as Flask, NLTK or SpaCy, scikit-learn, TensorFlow or PyTorch, OpenCV and music21, depending on which tasks you choose."
+    },
+    {
+      "question": "What happens if I miss the deadline?",
+      "answer": "If you cannot finish within the timeframe, contact the CodeAlpha team through the WhatsApp group as early as possible to discuss an extension. Unsubmitted tasks mean the internship is marked incomplete."
+    },
+    {
+      "question": "How do I contact CodeAlpha support?",
+      "answer": "You can reach the team at services@codealpha.tech or services.codealpha@gmail.com, on WhatsApp at +91 9336576683, or through the website www.codealpha.tech."
+    },
+    {
+      "question": "What projects can I choose in the AI domain?",
+      "answer": "AI-domain tasks include a Language Translation Tool, a Chatbot for FAQs, Music Generation with AI, and Object Detection and Tracking. You complete any 2 or 3 of them."
+    }
+  ]
+}
