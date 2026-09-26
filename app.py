@@ -1,135 +1,205 @@
-"""CodeAlpha Task 2 — FAQ Chatbot.
+"""Modern Gemini AI Chatbot with Conversation Memory."""
 
-A Flask chatbot that answers user questions by matching them against a
-knowledge base of FAQs:
-
-* NLTK preprocessing (tokenize, clean, stop-word removal, lemmatize)
-* TF-IDF vectorisation + cosine similarity (scikit-learn) for intent matching
-* Confidence scoring with a graceful fallback when nothing matches
-
-Swap `faqs.json` for your own product/topic FAQs to reuse the bot anywhere.
-"""
-
-from __future__ import annotations
-
-import json
 import logging
+import os
 from pathlib import Path
+from typing import Any
 
-import numpy as np
+from dotenv import load_dotenv
 from flask import Flask, jsonify, render_template, request
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-
-from nlp_utils import ensure_nltk_data, preprocess
 
 BASE_DIR = Path(__file__).resolve().parent
-FAQS_PATH = BASE_DIR / "faqs.json"
+ENV_PATH = BASE_DIR / ".env"
 
-# Below this cosine similarity the bot admits it doesn't know.
-CONFIDENCE_THRESHOLD = 0.35
-# Number of similar questions offered as suggestions on a miss.
-SUGGESTION_COUNT = 3
+load_dotenv(ENV_PATH)
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-logger = logging.getLogger("faq-chatbot")
+logger = logging.getLogger("gemini-chatbot")
 
 app = Flask(__name__)
 
+GEMINI_AVAILABLE = False
+try:
+    from google import genai
+    from google.genai import types as genai_types
+    GEMINI_AVAILABLE = True
+except ImportError:
+    logger.warning("google-genai package not found. Please install requirements.txt")
 
-class FaqBot:
-    """TF-IDF + cosine similarity matcher over a FAQ knowledge base."""
+_gemini_client = None
+_gemini_client_key = None
 
-    def __init__(self, faqs_path: Path):
-        with open(faqs_path, encoding="utf-8") as fh:
-            data = json.load(fh)
-        self.topic: str = data.get("topic", "FAQ")
-        self.faqs: list[dict] = data["faqs"]
-        self.questions = [entry["question"] for entry in self.faqs]
+DEFAULT_SUGGESTIONS = [
+    "Explain how LLMs and neural networks work",
+    "Write a Python function to parse JSON data",
+    "Give me 5 practical tips to boost daily focus",
+    "Brainstorm startup ideas in renewable energy",
+]
 
-        # Preprocess every FAQ question once, then vectorise the corpus.
-        corpus = [preprocess(q) for q in self.questions]
-        self.vectorizer = TfidfVectorizer(ngram_range=(1, 2))
-        self.tfidf_matrix = self.vectorizer.fit_transform(corpus)
-        logger.info("Loaded %d FAQs for topic '%s'", len(self.faqs), self.topic)
+MODELS_TO_TRY = [
+    "gemini-3.5-flash-lite",
+    "gemini-flash-latest",
+    "gemini-3.8-flash",
+    "gemini-3.5-flash",
+]
 
-    def answer(self, user_message: str) -> dict:
-        """Return the best matching FAQ answer for a user message."""
-        cleaned = preprocess(user_message)
-        if not cleaned:
-            return {
-                "answer": "I couldn't quite read that — could you rephrase your question?",
-                "matched": False,
-                "confidence": 0.0,
-                "suggestions": self.random_questions(),
-            }
+SYSTEM_INSTRUCTION = (
+    "You are a friendly, versatile, and highly capable AI Chatbot.\n\n"
+    "Guidelines:\n"
+    "- Help the user with any question, task, problem, or topic.\n"
+    "- Provide clear, concise, and structured answers using markdown formatting (bullet points, bold text, code blocks).\n"
+    "- When writing code, provide clean, idiomatic examples with brief explanations.\n"
+    "- Maintain a supportive, polite, and helpful tone."
+)
 
-        query_vec = self.vectorizer.transform([cleaned])
-        similarities = cosine_similarity(query_vec, self.tfidf_matrix).flatten()
 
-        best_idx = int(np.argmax(similarities))
-        best_score = float(similarities[best_idx])
+def get_active_gemini_key() -> str | None:
+    """Retrieve Gemini API key from environment, reloading .env if needed."""
+    load_dotenv(ENV_PATH, override=True)
+    key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or ""
+    return key.strip() if key.strip() else None
 
-        if best_score < CONFIDENCE_THRESHOLD:
-            return {
-                "answer": (
-                    "I'm not sure about that one 🤔 — it may not be in my knowledge base. "
-                    "Try one of these questions instead:"
-                ),
-                "matched": False,
-                "confidence": round(best_score, 3),
-                "suggestions": self._top_questions(similarities, SUGGESTION_COUNT),
-            }
 
+def get_gemini_client(api_key: str | None = None):
+    """Retrieve or create persistent Gemini client."""
+    global _gemini_client, _gemini_client_key
+    key = (api_key or get_active_gemini_key() or "").strip()
+    if not key or not GEMINI_AVAILABLE:
+        return None
+    if _gemini_client is None or _gemini_client_key != key:
+        try:
+            _gemini_client = genai.Client(api_key=key)
+            _gemini_client_key = key
+        except Exception as e:
+            logger.warning("Failed to initialize Gemini client: %s", e)
+            return None
+    return _gemini_client
+
+
+def generate_gemini_response(
+    user_message: str,
+    history: list[dict[str, str]] | None = None,
+    api_key: str | None = None,
+) -> dict[str, Any]:
+    """Generate response using Gemini with multi-turn conversation memory."""
+    client = get_gemini_client(api_key)
+    if not client:
         return {
-            "answer": self.faqs[best_idx]["answer"],
-            "matched": True,
-            "confidence": round(best_score, 3),
-            "matched_question": self.faqs[best_idx]["question"],
-            "suggestions": [],
+            "answer": (
+                "👋 Welcome! To start chatting, please set your Google Gemini API key by clicking "
+                "the **Set Gemini Key** button in the top bar.\n\n"
+                "You can get a free API key at [Google AI Studio](https://aistudio.google.com/app/apikey)."
+            ),
+            "engine": "System",
+            "active": False,
         }
 
-    def _top_questions(self, similarities: np.ndarray, count: int) -> list[str]:
-        """The `count` most similar FAQ questions (for suggestion chips)."""
-        order = np.argsort(similarities)[::-1]
-        picked: list[str] = []
-        for idx in order[: count + 1]:
-            q = self.faqs[int(idx)]["question"]
-            if q not in picked:
-                picked.append(q)
-            if len(picked) == count:
-                break
-        return picked
+    # Build conversation contents list
+    contents = []
+    if history:
+        # Keep last 14 turns for context
+        for item in history[-14:]:
+            role = "user" if item.get("role") == "user" else "model"
+            text = (item.get("content") or "").strip()
+            if text:
+                contents.append({"role": role, "parts": [{"text": text}]})
 
-    def random_questions(self) -> list[str]:
-        """A few sample questions to show the user."""
-        return [self.faqs[i]["question"] for i in (0, 2, len(self.faqs) - 1)]
+    contents.append({"role": "user", "parts": [{"text": user_message}]})
 
+    for model_name in MODELS_TO_TRY:
+        try:
+            resp = client.models.generate_content(
+                model=model_name,
+                contents=contents,
+                config=genai_types.GenerateContentConfig(
+                    system_instruction=SYSTEM_INSTRUCTION,
+                    temperature=0.7,
+                    max_output_tokens=1000,
+                ),
+            )
+            if resp and resp.text:
+                return {
+                    "answer": resp.text.strip(),
+                    "engine": "Google Gemini",
+                    "model": model_name,
+                    "active": True,
+                }
+        except Exception as err:
+            logger.warning("Attempt with model %s failed: %s", model_name, err)
 
-ensure_nltk_data()
-bot = FaqBot(FAQS_PATH)
+    return {
+        "answer": "⚠️ Gemini service is currently experiencing high demand. Please try again in a moment.",
+        "engine": "Google Gemini",
+        "active": True,
+    }
 
 
 @app.get("/")
 def index():
-    return render_template("index.html", topic=bot.topic)
+    has_gemini = bool(get_active_gemini_key() and GEMINI_AVAILABLE)
+    return render_template(
+        "index.html",
+        starters=DEFAULT_SUGGESTIONS,
+        has_gemini=has_gemini,
+    )
 
 
 @app.post("/api/chat")
 def chat():
     data = request.get_json(silent=True) or {}
     message = (data.get("message") or "").strip()
+    history = data.get("history") or []
+
     if not message:
         return jsonify(error="Please type a message."), 400
-    if len(message) > 500:
-        return jsonify(error="That message is too long — keep it under 500 characters."), 400
-    return jsonify(bot.answer(message))
+    if len(message) > 2000:
+        return jsonify(error="Message too long — please keep it under 2,000 characters."), 400
+
+    api_key = get_active_gemini_key()
+    response = generate_gemini_response(message, history=history, api_key=api_key)
+    return jsonify(response)
 
 
-@app.get("/api/faqs")
-def list_faqs():
-    """Full FAQ list — handy for a 'View all questions' panel."""
-    return jsonify(topic=bot.topic, faqs=bot.faqs)
+@app.get("/api/status")
+def status():
+    has_key = bool(get_active_gemini_key())
+    return jsonify(
+        gemini_available=GEMINI_AVAILABLE,
+        gemini_active=has_key and GEMINI_AVAILABLE,
+    )
+
+
+@app.get("/api/suggestions")
+def suggestions():
+    return jsonify(suggestions=DEFAULT_SUGGESTIONS)
+
+
+@app.post("/api/config")
+def set_config():
+    global _gemini_client
+    data = request.get_json(silent=True) or {}
+    api_key = (data.get("gemini_api_key") or "").strip()
+
+    if not api_key:
+        return jsonify(error="API Key cannot be empty."), 400
+
+    if GEMINI_AVAILABLE:
+        try:
+            client = genai.Client(api_key=api_key)
+            client.models.generate_content(
+                model=MODELS_TO_TRY[0],
+                contents="ping",
+            )
+            _gemini_client = client
+        except Exception as ex:
+            if "API_KEY_INVALID" in str(ex) or "INVALID_ARGUMENT" in str(ex):
+                return jsonify(error=f"Invalid Gemini API key: {ex}"), 400
+
+    with open(ENV_PATH, "w", encoding="utf-8") as f:
+        f.write(f"# Gemini API Key\nGEMINI_API_KEY={api_key}\n")
+
+    os.environ["GEMINI_API_KEY"] = api_key
+    return jsonify(success=True, message="Gemini API Key saved and activated successfully! 🚀")
 
 
 if __name__ == "__main__":

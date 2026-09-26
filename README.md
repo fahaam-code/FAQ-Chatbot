@@ -1,86 +1,64 @@
-# CodeAlpha — FAQ Chatbot
+# AI Chatbot
 
-**CodeAlpha AI Internship · Task 2**
-
-A Flask chatbot that answers user questions by matching them against a
-knowledge base of FAQs, using classic NLP: **NLTK preprocessing** +
-**TF-IDF / cosine-similarity intent matching** — exactly the approach the
-task specifies.
+A modern, streamlined AI Chatbot web application powered by **Google Gemini API** (`google-genai` SDK) and built with **Flask**. Features multi-turn conversational memory, rich markdown and code formatting, dynamic suggestion chips, and in-browser API key management.
 
 ## ✨ Features
 
-- **NLTK text pipeline** — tokenization, cleaning, stop-word removal, lemmatization
-- **TF-IDF + cosine similarity** to find the most similar FAQ (uni + bigrams)
-- **Confidence scoring** — below a threshold the bot honestly says
-  "I'm not sure" and suggests the closest questions instead
-- **Chat UI** — message bubbles, typing indicator, clickable suggestion chips
-- **Per-answer transparency** — shows which FAQ matched and its confidence %
-- **Swappable knowledge base** — edit `faqs.json` to cover any product/topic
-- `GET /api/faqs` returns the full FAQ list (e.g. for a "view all" panel)
+- **Google Gemini AI Integration** — Powered by Google's latest Gemini models with automatic fast-fallback support.
+- **Multi-Turn Conversation Memory** — Retains context across questions and replies just like ChatGPT.
+- **Rich Markdown & Code Rendering** — Supports structured lists, bold/italic text, inline code, and dedicated code blocks.
+- **Dynamic Suggestion Chips** — Starter prompts for immediate engagement.
+- **In-Browser API Key Configuration** — Activate or update your Gemini API key directly from the UI or via `.env`.
+- **Lightweight Architecture** — Zero unnecessary dependencies or bloated datasets; pure Flask and Gemini.
 
 ## 🛠️ Tech Stack
 
-| Layer        | Technology                                   |
-|--------------|----------------------------------------------|
-| Backend      | Python, Flask                                |
-| NLP          | NLTK (tokenize, stopwords, WordNet lemmatizer) |
-| Matching     | scikit-learn TF-IDF + cosine similarity      |
-| Frontend     | HTML, CSS, vanilla JavaScript                |
-| Knowledge    | `faqs.json` (default topic: CodeAlpha FAQs)  |
+| Layer     | Technology                            |
+|-----------|---------------------------------------|
+| LLM       | Google Gemini API (`google-genai` SDK)|
+| Backend   | Python 3, Flask, python-dotenv        |
+| Frontend  | HTML5, CSS3, Vanilla JavaScript       |
 
 ## 🚀 Setup & Run
 
 ```bash
 # 1. Create and activate a virtual environment
 py -m venv .venv
-.venv\Scripts\activate        # Windows
-# source .venv/bin/activate   # macOS / Linux
+.\.venv\Scripts\activate        # Windows
+# source .venv/bin/activate     # macOS / Linux
 
 # 2. Install dependencies
 pip install -r requirements.txt
 
-# 3. Run the app (NLTK data downloads automatically on first start)
+# 3. (Optional) Set your Gemini API key in .env or via the web UI
+# GEMINI_API_KEY=your_gemini_api_key_here
+
+# 4. Run the app
 python app.py
 ```
 
-Then open **http://127.0.0.1:5000** in your browser.
-
-## 🧠 How Matching Works
-
-1. Every FAQ question is cleaned: lowercase → strip punctuation →
-   tokenize (NLTK) → remove stop words → lemmatize.
-2. The cleaned questions are vectorised with TF-IDF (1–2 word n-grams).
-3. A user message goes through the same pipeline, and **cosine similarity**
-   is computed against every FAQ.
-4. The best match above a **0.35 confidence threshold** is returned;
-   otherwise the bot offers the closest questions as suggestions.
+Open **http://127.0.0.1:5000** in your browser.
 
 ## 📁 Project Structure
 
 ```
-CodeAlpha_FAQChatbot/
-├── app.py                  # Flask routes + FaqBot (TF-IDF matcher)
-├── nlp_utils.py            # NLTK preprocessing helpers
-├── faqs.json               # FAQ knowledge base (edit to change topics)
+Final Chatbot/
+├── app.py                  # Flask application & Gemini conversation handler
 ├── templates/
-│   └── index.html          # Chat UI page
+│   └── index.html          # Clean chat interface & API key modal
 ├── static/
-│   ├── style.css           # Styling
-│   └── script.js           # Chat logic (bubbles, typing, chips)
-├── requirements.txt
+│   ├── style.css           # Modern aesthetic UI styling
+│   └── script.js           # Multi-turn chat client & modal logic
+├── .env.example            # Environment configuration template
+├── requirements.txt        # Minimal dependencies (Flask, google-genai, python-dotenv)
 └── README.md
 ```
 
-## 🔌 API
+## 🔌 API Endpoints
 
-| Endpoint     | Method | Body              | Response                                        |
-|--------------|--------|-------------------|-------------------------------------------------|
-| `/api/chat`  | POST   | `{"message"}`     | `{"answer", "matched", "confidence", "suggestions", ...}` |
-| `/api/faqs`  | GET    | —                 | `{"topic", "faqs": [...]}`                      |
-
-## 📸 Screenshot
-
-_(Add a screenshot of a chat conversation here before submitting.)_
-
----
-Built as part of the [CodeAlpha](https://www.codealpha.tech/) AI Internship.
+| Endpoint           | Method | Body                                    | Description                                           |
+|--------------------|--------|-----------------------------------------|-------------------------------------------------------|
+| `/api/chat`        | POST   | `{"message": "...", "history": [...]}`  | Send message with conversation history and get reply  |
+| `/api/status`      | GET    | —                                       | Check Gemini connection status                        |
+| `/api/config`      | POST   | `{"gemini_api_key": "..."}`             | Validate, save, and activate Gemini API key           |
+| `/api/suggestions` | GET    | —                                       | Get starter prompt suggestions                        |
